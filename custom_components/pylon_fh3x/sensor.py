@@ -21,9 +21,10 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
 
-# Each key must match the corresponding key in the coordinator data dictionary.
+# Hier definiëren we alle sensoren. De 'key' moet exact overeenkomen 
+# met de naam die we in coordinator.py aan de data dictionary hebben gegeven!
 SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
-    # Status
+    # --- Status Sensoren ---
     SensorEntityDescription(
         key="inverter_status",
         name="Inverter Status",
@@ -35,7 +36,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         icon="mdi:battery-information",
     ),
 
-    # Solar PV
+    # --- PV (Zonnepanelen) ---
     SensorEntityDescription(
         key="pv1_voltage", name="PV1 Voltage",
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
@@ -85,7 +86,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
 
-    # Derived PV power
+    #pv power
     SensorEntityDescription(
         key="pv1_power", name="PV1 Power",
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -105,7 +106,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
 
-    # AC power and grid
+    # --- Power & Net ---
     SensorEntityDescription(
         key="ac_total_power", name="AC Total Power",
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -161,7 +162,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
 
-    # Battery data reported by the inverter
+    # --- Batterij (Omvormer registers) ---
     SensorEntityDescription(
         key="battery_power", name="Battery Power",
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -199,7 +200,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
 
-    # Battery management system
+    # --- BMS Registers ---
     SensorEntityDescription(
         key="bms_voltage", name="BMS Voltage",
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
@@ -242,7 +243,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
     
-    # Inverter temperatures and EPS output
+    # --- Omvormer Algemeen ---
     SensorEntityDescription(
         key="inverter_temperature", name="Inverter Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -267,7 +268,7 @@ async def async_setup_entry(
     """Set up Pylontech sensor based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Create one entity for each sensor description.
+    # Maak voor elke definitie hierboven een PylontechSensor object aan
     entities = [
         PylontechSensor(coordinator, description, entry)
         for description in SENSOR_TYPES
@@ -291,10 +292,10 @@ class PylontechSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.entity_description = description
         
-        # Include the host so multiple inverters receive distinct entity IDs.
+        # Zorgt voor unieke ID's in de database
         self._attr_unique_id = f"{DOMAIN}_{entry.data['host']}_{description.key}"
 
-        # Group all entities from this config entry under one Home Assistant device.
+        # Dit groepeert alle sensoren onder één Apparaat in Home Assistant
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
             "name": entry.title,
@@ -305,5 +306,5 @@ class PylontechSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        # Read the latest value published by the coordinator.
+        # Haal de waarde op uit de dictionary die we in coordinator.py hebben gebouwd
         return self.coordinator.data.get(self.entity_description.key)
