@@ -17,11 +17,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Pylontech Force H3X from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Get IP and PORT from config-flow
+    # Read the Modbus endpoint stored by the config flow.
     host = entry.data[CONF_HOST]
     port = entry.data[CONF_PORT]
 
-    # Initialize coordinator
+    # Initialize the shared coordinator used by all entity platforms.
     coordinator = PylontechCoordinator(hass, host, port)
 
     

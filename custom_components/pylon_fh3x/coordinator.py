@@ -15,7 +15,7 @@ from .const import DOMAIN, DEFAULT_SCAN_INTERVAL
 _LOGGER = logging.getLogger(__name__)
 
 # =========================================================
-# Helper functions for Modbus decoding
+# Modbus register decoding helpers
 # =========================================================
 def get_16bit_uint(regs, idx):
     return regs[idx]
@@ -44,7 +44,7 @@ async def _modbus_read(client, address, count, target_id):
 
 
 class PylontechCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching Modbus data from the inverter."""
+    """Coordinate Modbus reads and writes for the inverter."""
 
     def __init__(self, hass: HomeAssistant, host: str, port: int) -> None:
         self.client = AsyncModbusTcpClient(host=host, port=port, timeout=5)
@@ -59,7 +59,7 @@ class PylontechCoordinator(DataUpdateCoordinator):
 
     async def safe_read(self, address, count, slave):
         
-        # 100ms pause
+        # Space requests to avoid overwhelming the inverter's Modbus interface.
         await asyncio.sleep(0.1) 
         res = await _modbus_read(self.client, address, count, slave)
         if res.isError():
@@ -76,23 +76,23 @@ class PylontechCoordinator(DataUpdateCoordinator):
             data = {}
 
             
-            # AC & Grid Power (30100 - 30101 en 30108 - 30109)
+            # AC and grid power (registers 30100-30101 and 30108-30109).
             r_ac = await self.safe_read(30100, 2, 2)
             if r_ac: data["ac_total_power"] = get_32bit_int(r_ac, 0)
             
             r_grid = await self.safe_read(30108, 2, 2)
             if r_grid: data["grid_total_power"] = get_32bit_int(r_grid, 0)
 
-            #virtual sensor that combines ac power out of battery with grid power and thus get the load power.
+            # Derive load power from inverter AC power and grid power.
             if "ac_total_power" in data and "grid_total_power" in data:
                 data["load_power"] = data["ac_total_power"] + data["grid_total_power"]
 
 
-            # Inverter Status (30115)
+            # Inverter status (register 30115).
             r_status = await self.safe_read(30115, 1, 2)
             if r_status: data["inverter_status"] = get_16bit_uint(r_status, 0)
 
-            # PV voltage & current (30119 t/m 30124)
+            # PV voltage and current (registers 30119-30124).
             r_pv = await self.safe_read(30119, 6, 2)
             if r_pv:
                 data["pv1_voltage"] = get_16bit_uint(r_pv, 0) * 0.1
@@ -102,20 +102,20 @@ class PylontechCoordinator(DataUpdateCoordinator):
                 data["pv3_voltage"] = get_16bit_uint(r_pv, 4) * 0.1
                 data["pv3_current"] = get_16bit_uint(r_pv, 5) * 0.1
             
-            #virtual sensor to calculate pv1,2,3 power
+            # Derive power for each PV input from its voltage and current.
             if r_pv:
                 data["pv1_power"] = data["pv1_voltage"] * data["pv1_current"]
                 data["pv2_power"] = data["pv2_voltage"] * data["pv2_current"]
                 data["pv3_power"] = data["pv3_voltage"] * data["pv3_current"]
 
 
-            # PV Power & Energy (30127 t/m 30130)
+            # Total PV power and energy (registers 30127-30130).
             r_pv_tot = await self.safe_read(30127, 4, 2)
             if r_pv_tot:
                 data["pv_total_power"] = get_32bit_int(r_pv_tot, 0)
                 data["pv_total_energy"] = get_32bit_float(r_pv_tot, 2)
 
-            # Grid Voltages & Freq (30131 t/m 30140)
+            # Grid phase voltages and AC frequency (registers 30131-30140).
             r_grid_v = await self.safe_read(30131, 10, 2)
             if r_grid_v:
                 data["grid_voltage_r"] = get_16bit_uint(r_grid_v, 0) * 0.1
@@ -123,14 +123,14 @@ class PylontechCoordinator(DataUpdateCoordinator):
                 data["grid_voltage_t"] = get_16bit_uint(r_grid_v, 4) * 0.1
                 data["ac_frequency"] = get_16bit_uint(r_grid_v, 9) * 0.01
 
-            # Temperature (30146)
+            # Inverter and heatsink temperatures (registers 30146-30147).
             r_temp = await self.safe_read(30146, 2, 2)
             if r_temp: 
                 data["inverter_temperature"] = get_16bit_int(r_temp, 0) * 0.1
                 data["heatsink_temperature"] = get_16bit_int(r_temp, 1) * 0.1
 
 
-            # Grid Energy In/Out (30156 t/m 30159)
+            # Cumulative grid import and export energy (registers 30156-30159).
             r_grid_e = await self.safe_read(30156, 4, 2)
             if r_grid_e:
                 data["total_grid_import"] = get_32bit_float(r_grid_e, 0)
@@ -156,7 +156,7 @@ class PylontechCoordinator(DataUpdateCoordinator):
                             7: "Offline",
                         }
             
-            # Battery Status, Power, Voltage, Current (30161 t/m 30165)
+            # Battery status, power, voltage, and current (registers 30161-30165).
             r_batt = await self.safe_read(30161, 5, 2)
             if r_batt:
 
@@ -167,45 +167,45 @@ class PylontechCoordinator(DataUpdateCoordinator):
                 data["battery_voltage"] = get_16bit_uint(r_batt, 3) * 0.1
                 data["battery_current"] = get_16bit_int(r_batt, 4) * 0.1
 
-            # Load Power (30172)
+            # EPS load power (registers 30172-30173).
             r_load = await self.safe_read(30172, 2, 2)
             if r_load: data["eps_power"] = get_32bit_int(r_load, 0)
 
 
 
-            # Battery Energy (30174 t/m 30177)
+            # Cumulative battery charge and discharge energy (registers 30174-30177).
             r_batt_e = await self.safe_read(30174, 4, 2)
             if r_batt_e:
                 data["total_battery_charge"] = get_32bit_float(r_batt_e, 0)
                 data["total_battery_discharge"] = get_32bit_float(r_batt_e, 2)
 
-            # SOC & CT Currents (30182 t/m 30185)
+            # Battery state of charge (register 30182).
             r_soc = await self.safe_read(30182, 4, 2)
             if r_soc:
                 data["battery_soc"] = get_16bit_uint(r_soc, 0)
 
 
             # =========================================================
-            # SLAVE 2 (inverter) - EMS Settings 
+            # Slave 2 (inverter): EMS settings
             # =========================================================
             r_ems = await self.safe_read(40901, 7, 2)
             if r_ems:
-                # 40901 is S16 (Signed)
+                # Register 40901 is a signed 16-bit value.
                 data["charge_discharge_power"] = get_16bit_int(r_ems, 0)
                 
-                # De rest is U16 (Unsigned)
+                # The remaining values are unsigned 16-bit integers.
                 data["charge_limit_soc"] = get_16bit_uint(r_ems, 1) #40902
                 data["discharge_limit_soc"] = get_16bit_uint(r_ems, 2) #40903
                 data["ems_mode"] = str(get_16bit_uint(r_ems, 6)) #40907
 
 
-            #heatpump 
+            # Heat-pump control (register 40848).
             r_hp = await self.safe_read(40848, 1, 2)
             if r_hp:
                 data["heat_pump"] = get_16bit_uint(r_hp, 0)
                 
 
-            # charge / discharge periods
+            # Charge and discharge period enable flags.
             r_p1 = await self.safe_read(40908, 1, 2)
             if r_p1:
                 data["period_1"] = get_16bit_uint(r_p1, 0)
@@ -224,27 +224,27 @@ class PylontechCoordinator(DataUpdateCoordinator):
 
 
             # =========================================================
-            # SLAVE 1 (BMS) 
+            # Slave 1: battery management system (BMS)
             # =========================================================
             
-            # BMS Voltage (5123 / 0x1403)
+            # BMS voltage (register 5123 / 0x1403).
             r_bms_v = await self.safe_read(5123, 1, 1)
             if r_bms_v: data["bms_voltage"] = get_16bit_uint(r_bms_v, 0) * 0.1
 
-            # BMS Temp, SOC, Cycles (5126 / 0x1406 t/m 0x1408)
+            # BMS temperature, state of charge, and cycle count (registers 5126-5128).
             r_bms_t = await self.safe_read(5126, 3, 1)
             if r_bms_t:
                 data["bms_temperature"] = get_16bit_int(r_bms_t, 0) * 0.1
                 data["bms_soc"] = get_16bit_uint(r_bms_t, 1)
                 data["bms_cycles"] = get_16bit_uint(r_bms_t, 2)
 
-            # BMS Cell Volts (5136 / 0x1410 t/m 0x1411)
+            # Highest and lowest cell voltage (registers 5136-5137).
             r_bms_cv = await self.safe_read(5136, 2, 1)
             if r_bms_cv:
                 data["bms_cell_voltage_max"] = get_16bit_uint(r_bms_cv, 0) * 0.001
                 data["bms_cell_voltage_min"] = get_16bit_uint(r_bms_cv, 1) * 0.001
 
-            # BMS SOH (5152 / 0x1420)
+            # BMS state of health (register 5152 / 0x1420).
             r_bms_soh = await self.safe_read(5152, 1, 1)
             if r_bms_soh: data["bms_soh"] = get_16bit_uint(r_bms_soh, 0)
 
@@ -263,7 +263,7 @@ class PylontechCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"unexpected error: {err}")
 
     async def async_write_register(self, address: int, value: int, slave: int = 2) -> bool:
-        #writing registers
+        """Write a signed or unsigned 16-bit value to a Modbus register."""
         try:
             if not self.client.connected:
                 await self.client.connect()
@@ -271,8 +271,7 @@ class PylontechCoordinator(DataUpdateCoordinator):
             if value < 0:
                 value = value & 0xFFFF
 
-            # Pymodbus write_register function 
-            
+            # Support the slave-ID keyword used by multiple pymodbus versions.
             try:
                 res = await self.client.write_register(address=address, value=value, slave=slave)
             except TypeError:
@@ -299,7 +298,7 @@ class PylontechCoordinator(DataUpdateCoordinator):
             if not self.client.connected:
                 await self.client.connect()
 
-            # Pack S32 into two U16 registers (big-endian)
+            # Split the signed value into two big-endian 16-bit registers.
             packed = struct.pack('>i', value)
             high, low = struct.unpack('>HH', packed)
 

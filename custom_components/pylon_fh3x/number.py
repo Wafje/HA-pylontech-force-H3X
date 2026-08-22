@@ -72,7 +72,7 @@ NUMBER_TYPES: tuple[PylontechNumberEntityDescription, ...] = (
         native_max_value=-1,
         native_step=100,
         register_address=40401,
-        is_32bit=True, # Zorg dat je number.py 32-bit ondersteunt!
+        is_32bit=True,
         slave_id=2,
     ),
 )
@@ -120,15 +120,15 @@ class PylontechNumber(CoordinatorEntity, NumberEntity):
 
     @property
     def native_value(self) -> float | None:
-        """Geef de huidige ingestelde waarde terug inclusief schaling."""
+        """Return the current value with its Modbus scale applied."""
         raw_value = self.coordinator.data.get(self.entity_description.key)
         if raw_value is not None:
-            # We ronden af op 1 decimaal om zwevende komma fouten (zoals 99.90000001) te voorkomen
+            # Avoid floating-point artifacts such as 99.90000001 in the UI.
             return round(raw_value * self.entity_description.scale, 1)
         return None
 
     async def async_set_native_value(self, value: float) -> None:
-        """Dit wordt aangeroepen als je in Home Assistant de waarde aanpast."""
+        """Write a value selected in Home Assistant to the inverter."""
         raw_value = int(round(value / self.entity_description.scale))
         
 

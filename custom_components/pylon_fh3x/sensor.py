@@ -21,10 +21,9 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
 
-# Hier definiëren we alle sensoren. De 'key' moet exact overeenkomen 
-# met de naam die we in coordinator.py aan de data dictionary hebben gegeven!
+# Each key must match the corresponding key in the coordinator data dictionary.
 SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
-    # --- Status Sensoren ---
+    # Status
     SensorEntityDescription(
         key="inverter_status",
         name="Inverter Status",
@@ -36,7 +35,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         icon="mdi:battery-information",
     ),
 
-    # --- PV (Zonnepanelen) ---
+    # Solar PV
     SensorEntityDescription(
         key="pv1_voltage", name="PV1 Voltage",
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
@@ -86,7 +85,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
 
-    #pv power
+    # Derived PV power
     SensorEntityDescription(
         key="pv1_power", name="PV1 Power",
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -104,9 +103,9 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
-    )
+    ),
 
-    # --- Power & Net ---
+    # AC power and grid
     SensorEntityDescription(
         key="ac_total_power", name="AC Total Power",
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -162,7 +161,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
 
-    # --- Batterij (Omvormer registers) ---
+    # Battery data reported by the inverter
     SensorEntityDescription(
         key="battery_power", name="Battery Power",
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -200,7 +199,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
 
-    # --- BMS Registers ---
+    # Battery management system
     SensorEntityDescription(
         key="bms_voltage", name="BMS Voltage",
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
@@ -243,7 +242,7 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
     
-    # --- Omvormer Algemeen ---
+    # Inverter temperatures and EPS output
     SensorEntityDescription(
         key="inverter_temperature", name="Inverter Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -268,7 +267,7 @@ async def async_setup_entry(
     """Set up Pylontech sensor based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Maak voor elke definitie hierboven een PylontechSensor object aan
+    # Create one entity for each sensor description.
     entities = [
         PylontechSensor(coordinator, description, entry)
         for description in SENSOR_TYPES
@@ -292,10 +291,10 @@ class PylontechSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.entity_description = description
         
-        # Zorgt voor unieke ID's in de database
+        # Include the host so multiple inverters receive distinct entity IDs.
         self._attr_unique_id = f"{DOMAIN}_{entry.data['host']}_{description.key}"
 
-        # Dit groepeert alle sensoren onder één Apparaat in Home Assistant
+        # Group all entities from this config entry under one Home Assistant device.
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
             "name": entry.title,
@@ -306,5 +305,5 @@ class PylontechSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        # Haal de waarde op uit de dictionary die we in coordinator.py hebben gebouwd
+        # Read the latest value published by the coordinator.
         return self.coordinator.data.get(self.entity_description.key)

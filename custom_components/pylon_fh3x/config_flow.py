@@ -21,15 +21,12 @@ DATA_SCHEMA = vol.Schema(
 )
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
-    
-    Data has the keys from DATA_SCHEMA with values provided by the user.
-    """
+    """Validate the supplied connection settings."""
 
     if len(data["host"]) < 3:
         raise CannotConnect
 
-    # Return info that you want to store in the config entry.
+    # Use a stable, user-friendly title for the config entry.
     return {"title": DEFAULT_NAME}
 
 

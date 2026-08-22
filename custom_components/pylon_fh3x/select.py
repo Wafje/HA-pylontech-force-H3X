@@ -9,7 +9,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, MANUFACTURER, MODEL
 
-# translation from numbers to modes
+# Map raw register values to user-facing EMS modes.
 EMS_MODE_OPTIONS = {
     "0": "Self-Consumption",
     "1": "Back up mode",
@@ -19,12 +19,12 @@ EMS_MODE_OPTIONS = {
     "5": "PN-Customer mode",
 }
 
-# translation back to numbers
+# Reverse mapping used when writing a selected mode.
 EMS_MODE_OPTIONS_REVERSE = {v: int(k) for k, v in EMS_MODE_OPTIONS.items()}
 
 @dataclass
 class PylontechSelectEntityDescription(SelectEntityDescription):
-    """Beschrijving van een Pylontech Select entiteit."""
+    """Describe a writable Pylontech select entity."""
     register_address: int = 0
     slave_id: int = 2
 
@@ -83,14 +83,14 @@ class PylontechSelect(CoordinatorEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        """Geef de huidige ingestelde optie terug."""
+        """Return the option matching the current register value."""
         raw_value = self.coordinator.data.get(self.entity_description.key)
         if raw_value is not None and str(raw_value) in EMS_MODE_OPTIONS:
             return EMS_MODE_OPTIONS[str(raw_value)]
         return None
 
     async def async_select_option(self, option: str) -> None:
-        """Dit wordt aangeroepen als je in Home Assistant een nieuwe optie kiest."""
+        """Write the selected EMS mode to the inverter."""
         int_value = EMS_MODE_OPTIONS_REVERSE.get(option)
         
         if int_value is not None:
@@ -101,6 +101,6 @@ class PylontechSelect(CoordinatorEntity, SelectEntity):
             )
             
             if success:
-                # Update lokaal zodat de UI direct correct staat
+                # Update local state immediately instead of waiting for the next poll.
                 self.coordinator.data[self.entity_description.key] = str(int_value)
                 self.async_write_ha_state()

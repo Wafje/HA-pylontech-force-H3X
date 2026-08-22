@@ -11,7 +11,7 @@ from .const import DOMAIN, MANUFACTURER, MODEL
 
 @dataclass
 class PylontechSwitchEntityDescription(SwitchEntityDescription):
-    """description of Pylontech Switch entity."""
+    """Describe a writable Pylontech switch entity."""
     register_address: int = 0
     slave_id: int = 2
 
@@ -104,7 +104,7 @@ class PylontechSwitch(CoordinatorEntity, SwitchEntity):
         return value == 1
 
     async def async_turn_on(self, **kwargs) -> None:
-        """Turn the heat pump on (Write 1)."""
+        """Enable the associated inverter setting."""
         success = await self.coordinator.async_write_register(
             address=self.entity_description.register_address,
             value=1,
@@ -116,7 +116,7 @@ class PylontechSwitch(CoordinatorEntity, SwitchEntity):
             self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs) -> None:
-        """Turn the heat pump off (Write 0)."""
+        """Disable the associated inverter setting."""
         success = await self.coordinator.async_write_register(
             address=self.entity_description.register_address,
             value=0,
