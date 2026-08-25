@@ -7,9 +7,9 @@ MODEL = "Force H3X"
 
 DEFAULT_NAME = "Pylontech Force H3X"
 DEFAULT_PORT = 502
-DEFAULT_SCAN_INTERVAL = 10
+DEFAULT_SCAN_INTERVAL = 5
 
-# polling interval for DataUpdateCoordinator
+# Interval between coordinator polling cycles.
 SCAN_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL)
 
 
