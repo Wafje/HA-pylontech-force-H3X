@@ -109,11 +109,34 @@ class PylontechCoordinator(DataUpdateCoordinator):
                 data["pv_total_power"] = get_32bit_int(r_inverter_main, 27)
                 data["pv_total_energy"] = get_32bit_float(r_inverter_main, 29)
                 data["grid_voltage_r"] = get_16bit_uint(r_inverter_main, 31) * 0.1
+                data["ac_current_r"] = get_16bit_uint(r_inverter_main, 32) * 0.1
                 data["grid_voltage_s"] = get_16bit_uint(r_inverter_main, 33) * 0.1
+                data["ac_current_s"] = get_16bit_uint(r_inverter_main, 34) * 0.1
                 data["grid_voltage_t"] = get_16bit_uint(r_inverter_main, 35) * 0.1
+                data["ac_current_t"] = get_16bit_uint(r_inverter_main, 36) * 0.1
+                # Inverter output power per phase, used to derive per-phase load power.
+                data["ac_power_r"] = data["grid_voltage_r"] * data["ac_current_r"]
+                data["ac_power_s"] = data["grid_voltage_s"] * data["ac_current_s"]
+                data["ac_power_t"] = data["grid_voltage_t"] * data["ac_current_t"]
                 data["ac_frequency"] = get_16bit_uint(r_inverter_main, 40) * 0.01
                 data["inverter_temperature"] = get_16bit_int(r_inverter_main, 46) * 0.1
                 data["heatsink_temperature"] = get_16bit_int(r_inverter_main, 47) * 0.1
+
+            # Per-phase grid current/power (CT clamp measurements at the grid connection).
+            r_grid_phases = await self.safe_read(30183, 9, 2)
+            if r_grid_phases:
+                data["grid_current_r"] = get_16bit_int(r_grid_phases, 0) * 0.1
+                data["grid_current_s"] = get_16bit_int(r_grid_phases, 1) * 0.1
+                data["grid_current_t"] = get_16bit_int(r_grid_phases, 2) * 0.1
+                data["grid_power_r"] = get_32bit_int(r_grid_phases, 3)
+                data["grid_power_s"] = get_32bit_int(r_grid_phases, 5)
+                data["grid_power_t"] = get_32bit_int(r_grid_phases, 7)
+
+                # Load power per phase = inverter output per phase + grid import/export per phase.
+                if "ac_power_r" in data:
+                    data["load_power_r"] = data["ac_power_r"] + data["grid_power_r"]
+                    data["load_power_s"] = data["ac_power_s"] + data["grid_power_s"]
+                    data["load_power_t"] = data["ac_power_t"] + data["grid_power_t"]
 
             r_inverter_battery = await self.safe_read(30156, 30, 2)
             if r_inverter_battery:
