@@ -32,7 +32,8 @@ This integration pulls comprehensive data from both the Inverter and the interna
 **📡 Read-Only Sensors:**
 * **🌞 Solar (PV):** Voltage, Current, and Power for PV1, PV2, and PV3, plus Total PV Energy.
 * **⚡ Grid & AC:** Grid Import/Export, AC Total Power, Load Power, Phase Voltages (R/S/T), AC Frequency, and Total Grid Energy.
-* **🔋 Battery (Inverter perspective):** Charge/Discharge Power, Voltage, Current, SOC, and Total Charge/Discharge Energy.
+* **� Per-Phase Grid & Load:** Grid Current and Grid Power per phase (R/S/T), plus derived Load Power per phase (R/S/T) — useful for spotting phase imbalance.
+* **�🔋 Battery (Inverter perspective):** Charge/Discharge Power, Voltage, Current, SOC, and Total Charge/Discharge Energy.
 * **🧠 BMS (Internal):** Cell Voltage Max/Min, BMS Temperature, BMS SOC, State of Health (SOH), and total battery cycles.
 * **🛠️ Status:** Inverter Status, Battery Status, and internal temperatures.
 
