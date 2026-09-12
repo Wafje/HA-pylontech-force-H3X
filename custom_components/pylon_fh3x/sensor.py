@@ -175,20 +175,20 @@ SENSOR_TYPES: tuple[SensorEntityDescription, ...] = (
     ),
     SensorEntityDescription(
         key="grid_power_r", name="Grid Power R",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
         key="grid_power_s", name="Grid Power S",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
         key="grid_power_t", name="Grid Power T",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
